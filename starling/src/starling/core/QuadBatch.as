@@ -88,11 +88,8 @@ package starling.core
         /** Uploads the raw data of all batched quads to the vertex buffer. */
         public function syncBuffers():void
         {
-            // as 3rd parameter, we could also use 'mNumQuads * 4', but on some GPU hardware (iOS!),
-            // this is slower than updating the complete buffer.
-            
             if (mVertexBuffer)
-                mVertexBuffer.uploadFromVector(mVertexData.rawData, 0, mVertexData.numVertices);
+                mVertexBuffer.uploadFromVector(mVertexData.rawData, 0, mNumQuads * 4);
         }
         
         /** Renders the current batch. Don't forget to call 'syncBuffers' before rendering. */
@@ -172,10 +169,9 @@ package starling.core
             alpha *= quad.alpha;
             
             if (alpha != 1.0)
-                for (var i:int = 0; i<4; ++i)
-                    mVertexData.scaleAlpha(vertexID+i, alpha);
+                mVertexData.scaleAlpha(vertexID, alpha, 4);
             
-            mVertexData.transformQuad(vertexID, modelViewMatrix);
+            mVertexData.transformVertex(vertexID, modelViewMatrix, 4);
             
             ++mNumQuads;
         }
