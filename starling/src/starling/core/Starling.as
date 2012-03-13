@@ -115,7 +115,7 @@ package starling.core
     public class Starling extends EventDispatcher
     {
         /** The version of the Starling framework. */
-        public static const VERSION:String = "0.9.1";
+        public static const VERSION:String = "1.0";
         
         // members
         
@@ -343,10 +343,10 @@ package starling.core
             makeCurrent();
             
             initializeGraphicsAPI();
-            initializeRoot();
-            
-            mTouchProcessor.simulateMultitouch = mSimulateMultitouch;
             dispatchEvent(new starling.events.Event(starling.events.Event.CONTEXT3D_CREATE));
+            
+            initializeRoot();
+            mTouchProcessor.simulateMultitouch = mSimulateMultitouch;
         }
         
         private function onEnterFrame(event:Event):void
