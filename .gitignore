@@ -14,8 +14,4 @@ starling/doc/html/
 
 # OS X folders
 .DS_Store
-<<<<<<< HEAD
-
 *.swc
-=======
->>>>>>> 7cb39b3... Gitignore update
