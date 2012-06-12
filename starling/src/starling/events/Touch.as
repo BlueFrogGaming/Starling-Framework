@@ -13,7 +13,9 @@ package starling.events
     import flash.geom.Matrix;
     import flash.geom.Point;
     
+    import starling.core.starling_internal;
     import starling.display.DisplayObject;
+    import starling.utils.formatString;
 
     /** A Touch object contains information about the presence or movement of a finger 
      *  or the mouse on the screen.
@@ -64,7 +66,7 @@ package starling.events
         public function getLocation(space:DisplayObject):Point
         {
             var point:Point = new Point(mGlobalX, mGlobalY);
-            mTarget.root.getTransformationMatrix(space, sHelperMatrix);
+            mTarget.base.getTransformationMatrix(space, sHelperMatrix);
             return sHelperMatrix.transformPoint(point);
         }
         
@@ -73,8 +75,21 @@ package starling.events
         public function getPreviousLocation(space:DisplayObject):Point
         {
             var point:Point = new Point(mPreviousGlobalX, mPreviousGlobalY);
-            mTarget.root.getTransformationMatrix(space, sHelperMatrix);
+            mTarget.base.getTransformationMatrix(space, sHelperMatrix);
             return sHelperMatrix.transformPoint(point);
+        }
+        
+        /** Returns the movement of the touch between the current and previous location. */ 
+        public function getMovement(space:DisplayObject):Point
+        {
+            return getLocation(space).subtract(getPreviousLocation(space));
+        }
+        
+        /** Returns a description of the object. */
+        public function toString():String
+        {
+            return formatString("Touch {0}: globalX={1}, globalY={2}, phase={3}",
+                                mID, mGlobalX, mGlobalY, mPhase);
         }
         
         /** Creates a clone of the Touch object. */
@@ -119,7 +134,7 @@ package starling.events
         // internal methods
         
         /** @private */
-        internal function setPosition(globalX:Number, globalY:Number):void
+        starling_internal function setPosition(globalX:Number, globalY:Number):void
         {
             mPreviousGlobalX = mGlobalX;
             mPreviousGlobalY = mGlobalY;
@@ -128,15 +143,15 @@ package starling.events
         }
         
         /** @private */
-        internal function setPhase(value:String):void { mPhase = value; }
+        starling_internal function setPhase(value:String):void { mPhase = value; }
         
         /** @private */
-        internal function setTapCount(value:int):void { mTapCount = value; }
+        starling_internal function setTapCount(value:int):void { mTapCount = value; }
         
         /** @private */
-        internal function setTarget(value:DisplayObject):void { mTarget = value; }
+        starling_internal function setTarget(value:DisplayObject):void { mTarget = value; }
         
         /** @private */
-        internal function setTimestamp(value:Number):void { mTimestamp = value; }
+        starling_internal function setTimestamp(value:Number):void { mTimestamp = value; }
     }
 }
