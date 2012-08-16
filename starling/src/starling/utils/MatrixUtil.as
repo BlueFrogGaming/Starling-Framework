@@ -55,12 +55,35 @@ package starling.utils
             return resultPoint;
         }
         
+        /** Appends a skew transformation to a matrix, with angles in radians. */
+        public static function skew(matrix:Matrix, skewX:Number, skewY:Number):void
+        {
+            var a:Number    = matrix.a;
+            var b:Number    = matrix.b;
+            var c:Number    = matrix.c;
+            var d:Number    = matrix.d;
+            var tx:Number   = matrix.tx;
+            var ty:Number   = matrix.ty;
+            
+            var sinX:Number = Math.sin(skewX);
+            var cosX:Number = Math.cos(skewX);
+            var sinY:Number = Math.sin(skewY);
+            var cosY:Number = Math.cos(skewY);
+            
+            matrix.a = a * cosY + c * sinY;
+            matrix.b = b * cosY + d * sinY;
+            matrix.c = c * cosX - a * sinX;
+            matrix.d = d * cosX - b * sinX;
+        }
+        
+        /** Prepends an incremental translation to a Matrix object. */
         public static function prependTranslation(matrix:Matrix, tx:Number, ty:Number):void
         {
             matrix.tx += matrix.a * tx + matrix.c * ty;
             matrix.ty += matrix.b * tx + matrix.d * ty;
         }
         
+        /** Prepends an incremental scale change to a Matrix object. */
         public static function prependScale(matrix:Matrix, sx:Number, sy:Number):void
         {
             matrix.setTo(matrix.a * sx, matrix.b * sx, 
@@ -68,6 +91,7 @@ package starling.utils
                          matrix.tx, matrix.ty);
         }
         
+        /** Prepends an incremental rotation to a Matrix3D object. */
         public static function prependRotation(matrix:Matrix, angle:Number):void
         {
             var sin:Number = Math.sin(angle);
