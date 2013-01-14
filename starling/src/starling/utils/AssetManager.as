@@ -1,4 +1,4 @@
-package 
+package starling.utils
 {
     import flash.display.Bitmap;
     import flash.display.Loader;
@@ -26,11 +26,22 @@ package
     import starling.text.TextField;
     import starling.textures.Texture;
     import starling.textures.TextureAtlas;
-
+    
+    /** The AssetManager handles loading and accessing a variety of asset types. You can 
+     *  add assets directly (via the 'add...' methods) or asynchronously via a queue. This allows
+     *  you to deal with assets in a unified way, no matter if they are loaded from a file, 
+     *  directory, URL, or from an embedded object.
+     *  
+     *  <p>If you load files from disk, the following types are supported:
+     *  <code>png, jpg, atf, mp3, xml, fnt</code></p>
+     */    
     public class AssetManager
     {
+        private const SUPPORTED_EXTENSIONS:Vector.<String> = 
+            new <String>["png", "jpg", "jpeg", "atf", "mp3", "xml", "fnt"]; 
+        
         private var mScaleFactor:Number;
-        private var mGenerateMipmaps:Boolean;
+        private var mUseMipMaps:Boolean;
         private var mVerbose:Boolean;
         
         private var mRawAssets:Array;
@@ -41,19 +52,34 @@ package
         /** helper objects */
         private var sNames:Vector.<String> = new <String>[];
         
-        public function AssetManager(scaleFactor:Number=-1, createMipmaps:Boolean=false)
+        /** Create a new AssetManager. The 'scaleFactor' and 'useMipmaps' parameters define
+         *  how enqueued bitmaps will be converted to textures. */
+        public function AssetManager(scaleFactor:Number=-1, useMipmaps:Boolean=false)
         {
             mVerbose = false;
             mScaleFactor = scaleFactor > 0 ? scaleFactor : Starling.contentScaleFactor;
-            mGenerateMipmaps = createMipmaps;
+            mUseMipMaps = useMipmaps;
             mRawAssets = [];
             mTextures = new Dictionary();
             mAtlases = new Dictionary();
             mSounds = new Dictionary();
         }
         
+        /** Disposes all contained textures. */
+        public function dispose():void
+        {
+            for each (var texture:Texture in mTextures)
+                texture.dispose();
+            
+            for each (var atlas:TextureAtlas in mAtlases)
+                atlas.dispose();
+        }
+        
         // retrieving
         
+        /** Returns a texture with a certain name. The method first looks through the directly
+         *  added textures; if no texture with that name is found, it scans through all 
+         *  texture atlases. */
         public function getTexture(name:String):Texture
         {
             if (name in mTextures) return mTextures[name];
@@ -67,14 +93,14 @@ package
                 return null;
             }
         }
-
+        
         /** Returns all textures that start with a certain string, sorted alphabetically
          *  (especially useful for "MovieClip"). */
         public function getTextures(prefix:String="", result:Vector.<Texture>=null):Vector.<Texture>
         {
             if (result == null) result = new <Texture>[];
             
-            for each (var name:String in getTextureNames(prefix, sNames)) 
+            for each (var name:String in getTextureNames(prefix, sNames))
                 result.push(getTexture(name));
             
             sNames.length = 0;
@@ -97,6 +123,13 @@ package
             return result;
         }
         
+        /** Returns a texture atlas with a certain name, or null if it's not found. */
+        public function getTextureAtlas(name:String):TextureAtlas
+        {
+            return mAtlases[name] as TextureAtlas;
+        }
+        
+        /** Returns a sound with a certain name. */
         public function getSound(name:String):Sound
         {
             return mSounds[name];
@@ -114,6 +147,8 @@ package
             return names.sort(Array.CASEINSENSITIVE);
         }
         
+        /** Generates a new SoundChannel object to play back the sound. This method returns a 
+         *  SoundChannel object, which you can access to stop the sound and to control volume. */ 
         public function playSound(name:String, startTime:Number=0, loops:int=0, 
                                   transform:SoundTransform=null):SoundChannel
         {
@@ -125,6 +160,7 @@ package
         
         // direct adding
         
+        /** Register a texture under a certain name. It will be availble right away. */
         public function addTexture(name:String, texture:Texture):void
         {
             log("Adding texture '" + name + "'");
@@ -135,6 +171,7 @@ package
                 mTextures[name] = texture;
         }
         
+        /** Register a texture atlas under a certain name. It will be availble right away. */
         public function addTextureAtlas(name:String, atlas:TextureAtlas):void
         {
             log("Adding texture atlas '" + name + "'");
@@ -145,6 +182,7 @@ package
                 mAtlases[name] = atlas;
         }
         
+        /** Register a sound under a certain name. It will be availble right away. */
         public function addSound(name:String, sound:Sound):void
         {
             log("Adding sound '" + name + "'");
@@ -157,6 +195,7 @@ package
         
         // removing
         
+        /** Removes a certain texture, optionally disposing it. */
         public function removeTexture(name:String, dispose:Boolean=true):void
         {
             if (dispose && name in mTextures)
@@ -165,6 +204,7 @@ package
             delete mTextures[name];
         }
         
+        /** Removes a certain texture atlas, optionally disposing it. */
         public function removeTextureAtlas(name:String, dispose:Boolean=true):void
         {
             if (dispose && name in mAtlases)
@@ -173,13 +213,46 @@ package
             delete mAtlases[name];
         }
         
+        /** Removes a certain sound. */
         public function removeSound(name:String):void
         {
             delete mSounds[name];
         }
         
+        /** Removes assets of all types and empties the queue. */
+        public function purge():void
+        {
+            for each (var texture:Texture in mTextures)
+                texture.dispose();
+            
+            for each (var atlas:TextureAtlas in mAtlases)
+                atlas.dispose();
+            
+            mRawAssets.length = 0;
+            mTextures = new Dictionary();
+            mAtlases = new Dictionary();
+            mSounds = new Dictionary();
+        }
+        
         // queued adding
         
+        /** Enqueues one or more raw assets; they will only be available after successfully 
+         *  executing the "loadQueue" method. This method accepts a variety of different objects:
+         *  
+         *  <ul>
+         *    <li>Strings containing an URL to a local or remote resource. Supported types:
+         *        <code>png, jpg, atf, mp3, fnt, xml</code> (texture atlas).</li>
+         *    <li>Instances of the File class (AIR only) pointing to a directory or a file.
+         *        Directories will be scanned recursively for all supported types.</li>
+         *    <li>Classes that contain <code>static</code> embedded assets.</li>
+         *  </ul>
+         *  
+         *  Suitable object names are extracted automatically: A file named "image.png" will be
+         *  accessible under the name "image". When enqueuing embedded assets via a class, 
+         *  the variable name of the embedded object will be used as its name. An exception
+         *  are texture atlases: they will have the same name as the actual texture they are
+         *  referencing.
+         */
         public function enqueue(...rawAssets):void
         {
             for each (var rawAsset:Object in rawAssets)
@@ -190,27 +263,37 @@ package
                 }
                 else if (rawAsset is Class)
                 {
-                    if (/\$[\d\w-]+$/.test(getQualifiedClassName(rawAsset)))
-                    {
-                        // embedded classes always end with a $HEX string -- yes, call it a hack ;)
-                        push(rawAsset);
-                    }
-                    else
-                    {
-                        // find all members with "Embed" metadata
-                        for each (var childNode:XML in describeType(rawAsset).*)
-                        if (childNode.metadata.(@name == "Embed").hasComplexContent())
-                            push(rawAsset[childNode.@name]);
-                    }
+                    var typeXml:XML = describeType(rawAsset);
+                    var childNode:XML;
+                    
+                    if (mVerbose)
+                        log("Looking for static embedded assets in '" + 
+                            (typeXml.@name).split("::").pop() + "'"); 
+                    
+                    for each (childNode in typeXml.constant.(@type == "Class"))
+                        push(rawAsset[childNode.@name], childNode.@name);
+                    
+                    for each (childNode in typeXml.variable.(@type == "Class"))
+                        push(rawAsset[childNode.@name], childNode.@name);
                 }
                 else if (getQualifiedClassName(rawAsset) == "flash.filesystem::File")
                 {
-                    if (!rawAsset["isHidden"])
+                    if (!rawAsset["exists"])
+                    {
+                        log("File or directory not found: '" + rawAsset["url"] + "'");
+                    }
+                    else if (!rawAsset["isHidden"])
                     {
                         if (rawAsset["isDirectory"])
                             enqueue.apply(this, rawAsset["getDirectoryListing"]());
                         else
-                            push(rawAsset["url"]);
+                        {
+                            var extension:String = rawAsset["extension"].toLowerCase();
+                            if (SUPPORTED_EXTENSIONS.indexOf(extension) != -1)
+                                push(rawAsset["url"]);
+                            else
+                                log("Ignoring unsupported file '" + rawAsset["name"] + "'");
+                        }
                     }
                 }
                 else if (rawAsset is String)
@@ -226,14 +309,20 @@ package
             function push(asset:Object, name:String=null):void
             {
                 if (name == null) name = getName(asset);
+                log("Enqueuing '" + name + "'");
                 
                 mRawAssets.push({ 
-                    name: (name ? name : getName(asset)), 
+                    name: name, 
                     asset: asset 
                 });
             }
         }
         
+        /** Loads all enqueued assets asynchronously. The 'onProgress' function will be called
+         *  with a 'ratio' between '0.0' and '1.0', with '1.0' meaning that it's complete.
+         *
+         *  @param onProgress: <code>function(ratio:Number):void;</code> 
+         */
         public function loadQueue(onProgress:Function):void
         {
             if (Starling.context == null)
@@ -255,7 +344,8 @@ package
                 else
                     processXmls();
                 
-                onProgress(currentRatio);
+                if (onProgress != null)
+                    onProgress(currentRatio);
             }
             
             function processNext():void
@@ -268,7 +358,12 @@ package
             function processXmls():void
             {
                 // xmls are processed seperately at the end, because the textures they reference
-                // have to be available
+                // have to be available for other XMLs. Texture atlases are processed first:
+                // that way, their textures can be referenced, too.
+                
+                xmls.sort(function(a:XML, b:XML):int { 
+                    return a.localName() == "TextureAtlas" ? -1 : 1; 
+                });
                 
                 for each (var xml:XML in xmls)
                 {
@@ -312,21 +407,36 @@ package
                 var asset:Object = new rawAsset();
                 
                 if (asset is Sound)
+                {
                     addSound(name, asset as Sound);
+                    onComplete();
+                }
                 else if (asset is Bitmap)
-                    addTexture(name, 
-                        Texture.fromBitmap(asset as Bitmap, mGenerateMipmaps, false, mScaleFactor));
+                {
+                    addTexture(name, Texture.fromBitmap(asset as Bitmap, mUseMipMaps, false, mScaleFactor));
+                    onComplete();
+                }
                 else if (asset is ByteArray)
                 {
                     var bytes:ByteArray = asset as ByteArray;
                     var signature:String = String.fromCharCode(bytes[0], bytes[1], bytes[2]);
+                    
                     if (signature == "ATF")
-                        addTexture(name, Texture.fromAtfData(asset as ByteArray, mScaleFactor));
+                    {
+                        addTexture(name, Texture.fromAtfData(asset as ByteArray, mScaleFactor, 
+                            mUseMipMaps, onComplete));
+                    }
                     else
+                    {
                         xmls.push(new XML(bytes));
+                        onComplete();
+                    }
                 }
-                
-                onComplete();
+                else
+                {
+                    log("Ignoring unsupported asset type: " + getQualifiedClassName(asset));
+                    onComplete();
+                }
             }
             else if (rawAsset is String)
             {
@@ -365,8 +475,7 @@ package
                 switch (extension)
                 {
                     case "atf":
-                        addTexture(name, Texture.fromAtfData(bytes, mScaleFactor));
-                        onComplete();
+                        addTexture(name, Texture.fromAtfData(bytes, mScaleFactor, mUseMipMaps, onComplete));
                         break;
                     case "fnt":
                     case "xml":
@@ -396,7 +505,7 @@ package
                 
                 if (content is Bitmap)
                     addTexture(name,
-                        Texture.fromBitmap(content as Bitmap, mGenerateMipmaps, false, mScaleFactor));
+                        Texture.fromBitmap(content as Bitmap, mUseMipMaps, false, mScaleFactor));
                 else
                     throw new Error("Unsupported asset type: " + getQualifiedClassName(content));
                 
@@ -415,18 +524,10 @@ package
             {
                 name = rawAsset is String ? rawAsset as String : (rawAsset as FileReference).name;
                 name = name.replace(/%20/g, " "); // URLs use '%20' for spaces
-                matches = /(.*[\\/])?([\w\s\-]+)(\.[\w]{1,4})?/.exec(name);
+                matches = /(.*[\\\/])?([\w\s\-]+)(\.[\w]{1,4})?/.exec(name);
                 
                 if (matches && matches.length == 4) return matches[2];
                 else throw new ArgumentError("Could not extract name from String '" + rawAsset + "'");
-            }
-            else if (rawAsset is Class)
-            {
-                name = getQualifiedClassName(rawAsset);
-                matches = /([\w\d-]+)_\w{1,4}/.exec(name);
-                
-                if (matches && matches.length == 2) return matches[1];
-                else throw new ArgumentError("Could not extract name from Class '" + name + "'");
             }
             else
             {
@@ -442,12 +543,18 @@ package
         
         // properties
         
+        /** When activated, the class will trace information about added/enqueued assets. */
         public function get verbose():Boolean { return mVerbose; }
         public function set verbose(value:Boolean):void { mVerbose = value; }
         
-        public function get generateMipMaps():Boolean { return mGenerateMipmaps; }
-        public function set generateMipMaps(value:Boolean):void { mGenerateMipmaps = value; }
+        /** For bitmap textures, this flag indicates if mip maps should be generated when they 
+         *  are loaded; for ATF textures, it indicates if mip maps are valid and should be
+         *  used. */
+        public function get useMipMaps():Boolean { return mUseMipMaps; }
+        public function set useMipMaps(value:Boolean):void { mUseMipMaps = value; }
         
+        /** Textures that are created from Bitmaps or ATF files will have the scale factor 
+         *  assigned here. */
         public function get scaleFactor():Number { return mScaleFactor; }
         public function set scaleFactor(value:Number):void { mScaleFactor = value; }
     }

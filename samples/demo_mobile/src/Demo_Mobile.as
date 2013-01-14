@@ -11,21 +11,25 @@ package
     import starling.core.Starling;
     import starling.events.Event;
     import starling.textures.Texture;
+    import starling.utils.AssetManager;
     import starling.utils.RectangleUtil;
+    import starling.utils.ScaleMode;
     import starling.utils.formatString;
     
     [SWF(width="320", height="480", frameRate="30", backgroundColor="#000000")]
-    public class Startup_Mobile extends Sprite
+    public class Demo_Mobile extends Sprite
     {
+        // Startup image for SD screens
         [Embed(source="../../demo/system/startup.jpg")]
-        public static var Background:Class;
+        private static var Background:Class;
         
-        [Embed(source="../../demo/system/startup@2x.jpg")]
-        public static var BackgroundHD:Class;
+        // Startup image for HD screens
+        [Embed(source="../../demo/system/startupHD.jpg")]
+        private static var BackgroundHD:Class;
         
         private var mStarling:Starling;
         
-        public function Startup_Mobile()
+        public function Demo_Mobile()
         {
             // This project requires the sources of the "demo" project. Add them either by 
             // referencing the "demo/src" directory as a "source path", or by copying the files.
@@ -49,7 +53,8 @@ package
             
             var viewPort:Rectangle = RectangleUtil.fit(
                 new Rectangle(0, 0, stageWidth, stageHeight), 
-                new Rectangle(0, 0, stage.fullScreenWidth, stage.fullScreenHeight), true);
+                new Rectangle(0, 0, stage.fullScreenWidth, stage.fullScreenHeight), 
+                ScaleMode.SHOW_ALL, iOS);
             
             // create the AssetManager, which handles all required assets for this resolution
             
