@@ -16,3 +16,5 @@ starling/bin/starling.swc
 
 # OS X folders
 .DS_Store
+
+*.swc
