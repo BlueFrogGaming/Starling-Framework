@@ -10,6 +10,7 @@ starling/doc/html/
 .project
 .actionScriptProperties
 .FlexUnitSettings
+.idea/
 
 # swc
 starling/bin/starling.swc
