@@ -11,6 +11,7 @@ starling/doc/html/
 .actionScriptProperties
 .FlexUnitSettings
 .idea/
+*.iml
 
 # swc
 starling/bin/starling.swc
